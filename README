@@ -1,0 +1,236 @@
+---------------------------------------------------------------------
+                    README file for Audio::CoolEdit.
+            3/1/99 - Nick Peskett - nick@soup.demon.co.uk
+---------------------------------------------------------------------
+
+Modules for reading & writing Syntrillium CoolEdit Pro .ses files.
+
+Syntrillium's CoolEdit Pro (http://www.syntrillium.com) is a
+MSWin32 based multitrack capable sound editor. This module
+reads/ writes the .ses (session) file format enabling you to
+place audio files in a vitual track at a given offset. The write
+module is a lot more developed than the read module as this has
+been developed to be used with Audio::Mix
+
+---------------------------------------------------------------------
+                                NOTES
+---------------------------------------------------------------------
+
+I have seperated the module Audio::ByteOrder because I developed these
+packages on a Win32 machine & I was worried about unpacking types on a
+big endian processor. I have only tested the Audio::XXX modules on
+Win32 so far.
+
+---------------------------------------------------------------------
+                             INSTALLATION
+---------------------------------------------------------------------
+
+You'll need to install Audio::Tools first.
+
+It's advisable to install Audio::Wav too so the module can analyse wav
+files.
+
+Same as for any CPAN module;
+
+tar zxvf Audio-CoolEdit-0.01.tar.gz
+cd Audio-CoolEdit-0.01
+perl Makefile.PL
+make test
+make install
+
+---------------------------------------------------------------------
+                            DOCUMENTATION
+---------------------------------------------------------------------
+
+---------------------------------------------------------------------
+                           Audio::CoolEdit
+  Modules for reading & writing Syntrillium CoolEdit Pro .ses files.
+---------------------------------------------------------------------
+
+SYNOPSIS
+            use Audio::CoolEdit;
+
+            my $cool = new Audio::CoolEdit;
+
+            my $test_out = './test';
+
+            my $details =   {
+                            'bits_sample'   => 16,
+                            'sample_rate'   => 44100,
+                            };
+
+            my $write = $cool -> write( $test_out, $details );
+
+            $write -> add_file(     {
+                                    'file'          => './t/testout.wav',
+                                    'title'         => "song 1",
+                                    } );
+
+            $write -> add_file(     {
+                                    'file'          => './t/testout.wav',
+                                    'title'         => "song 2",
+                                    } );
+
+            $write -> finish();
+
+            my $read = $cool -> read( $test_out );
+
+            print Data::Dumper->Dump([ $read -> dump() ]);
+
+DESCRIPTION
+    Syntrillium's CoolEdit Pro (http://www.syntrillium.com) is a
+    MSWin32 based multitrack capable sound editor. This module
+    reads/ writes the .ses (session) file format enabling you to
+    place audio files in a vitual track at a given offset. The write
+    module is a lot more developed than the read module as this has
+    been developed to be used with Audio::Mix
+
+NOTES
+    All sample positions used are in byte offsets (the
+    Audio::Tools::Time manpage for conversion utilities)
+
+METHODS
+  new
+
+    Returns a blessed Audio::CoolEdit object.
+
+            my $cool = new Audio::CoolEdit;
+
+  write
+
+    Returns a blessed Audio::CoolEdit::Write object.
+
+            my $details =   {
+                            'bits_sample'   => 16,
+                            'sample_rate'   => 44100,
+                            };
+            my $write = $cool -> write( './test', $details );
+
+    See the Audio::CoolEdit::Write manpage for methods.
+
+  read
+
+    Returns a blessed Audio::CoolEdit::Read object.
+
+            my $read = $cool -> read( './test.ses' );
+
+    See the Audio::CoolEdit::Read manpage for methods.
+
+
+---------------------------------------------------------------------
+                        Audio::CoolEdit::Write
+       Methods for writing Syntrillium CoolEdit Pro .ses files.
+---------------------------------------------------------------------
+
+SYNOPSIS
+            use Audio::CoolEdit;
+
+            my $cool = new Audio::CoolEdit;
+
+            my $details =   {
+                            'bits_sample'   => 16,
+                            'sample_rate'   => 44100,
+                            };
+
+            my $write = $cool -> write( './test', $details );
+
+NOTES
+    This module shouldn't be used directly, a blessed object can be
+    returned from the Audio::CoolEdit manpage.
+
+METHODS
+  file_name
+
+    Returns the filename of the session file to be written.
+
+            my $file = $write -> file_name();
+
+  add_file
+
+    Adds a wav file to the current ses file. Takes a reference to a
+    hash as the only parameter. This hash should at least contain a
+    path to the wav file.
+
+            use Audio::Tools::Fades;
+            my $fade_type = 'trig';
+            my $fade_length = 20000;
+            my $fades = new Audio::Tools::Fades;
+            my $fade_sub = $fades -> fade( $fade_length, 0, $fade_type );
+
+            my $record =    {
+                                    'file'          => './t/testout.wav',
+                                    'offset'        => 0,
+                                    'title'         => "song 1",
+                                    'fade'          => {
+                                                       'in' =>      {
+                                                                    'type'  => $fade_type,
+                                                                    'fade'  => $fade_sub,
+                                                                    'start' => 0,
+                                                                    'end'   => $fade_length,
+                                                                    },
+                                                       },
+                            };
+
+            $write -> add_file( $record );
+
+    Parameters are; (* optional)
+
+            file    => path to wav file
+            offset* => offset in bytes to place the file.
+            start*  => the byte offset to start the file at.
+            end*    => the byte offset to stop the file at.
+            length* => length of data in bytes
+            title*  => title of file
+            fade*   => this should be a reference to a hash
+
+    If you don't supply length or offset you will need to install
+    the Audio::Wav module so the file can be analysed.
+
+    The fade hash should be in the following format; see the
+    Audio::Tools::Fades manpage
+
+            in/out  =>      {
+                            type    => linear/ exp/ invexp/ trig/ invtrig
+                            fade    => return from Audio::Tools::Fades -> fade method,
+                            start   => fade starts (bytes),
+                            end     => fade ends (bytes),
+                            }
+
+  add_cue
+
+    Adds a cuepoint to the current file.
+
+            $write -> add_cue( $byte_offset, 'Name', 'Description' );
+
+  finish
+
+    Finish & write the current file.
+
+            $write -> finish();
+
+
+---------------------------------------------------------------------
+                        Audio::CoolEdit::Read
+       Methods for reading Syntrillium CoolEdit Pro .ses files.
+---------------------------------------------------------------------
+
+SYNOPSIS
+            use Audio::CoolEdit;
+
+            my $cool = new Audio::CoolEdit;
+
+            my $read = $cool -> read( './testfile.ses' );
+
+NOTES
+    This module shouldn't be used directly, a blessed object can be
+    returned from the Audio::CoolEdit manpage.
+
+METHODS
+  dump
+
+    The only method, returns a complex reference to a hash with all
+    sorts of stuff in it. :-)
+
+            print Data::Dumper->Dump([ $cool -> dump() ]);
+
+---------------------------------------------------------------------

@@ -1,0 +1,12 @@
+Changes
+CoolEdit.pm
+MANIFEST
+README
+Makefile.PL
+test.pl
+makewavs.pl
+CoolEdit/Read.pm
+CoolEdit/Settings.pm
+CoolEdit/Write.pm
+CoolEdit/Read/Unpack.pm
+CoolEdit/Write/BlockPack.pm
